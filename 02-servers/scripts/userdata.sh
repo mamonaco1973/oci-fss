@@ -180,7 +180,7 @@ systemctl stop sssd || true
 
 # Derive NetBIOS name from hostname (max 15 chars, no dashes, uppercase)
 RAW_HOSTNAME=$(head /etc/hostname -c 15)
-NETBIOS_NAME=$(echo "$RAW_HOSTNAME" | tr -d '-' | tr '[:lower:]' '[:upper:]')
+NETBIOS_NAME=$(echo "$RAW_HOSTNAME" | tr '[:lower:]' '[:upper:]')
 
 cat > /etc/samba/smb.conf <<EOF
 [global]
@@ -235,7 +235,7 @@ browseable = no
 read only = no
 inherit acls = yes
 
-[efs]
+[nfs]
 path = /nfs
 read only = no
 guest ok = no
