@@ -131,6 +131,8 @@ for i in {1..10}; do
   echo "Domain join failed (attempt $i/10), retrying in 30s..."
   sleep 30
 done
+echo "DEBUG: realm list output:"
+realm list || true
 
 # SSH: allow password authentication for AD users
 if [ -f /etc/ssh/sshd_config.d/60-cloudimg-settings.conf ]; then
@@ -252,6 +254,15 @@ EOF
 systemctl restart winbind smb nmb sssd || true
 systemctl restart ssh || systemctl restart sshd || true
 
+echo "DEBUG: testparm output:"
+testparm -s 2>&1 || true
+echo "DEBUG: wbinfo -u:"
+wbinfo -u 2>&1 || true
+echo "DEBUG: wbinfo -g:"
+wbinfo -g 2>&1 || true
+echo "DEBUG: getent group ${lower(netbios)}-users:"
+getent group "${lower(netbios)}-users" 2>&1 || true
+
 # ==============================================================================
 # Permissions and Seed Content
 # ==============================================================================
@@ -265,6 +276,8 @@ done
 chgrp "${lower(netbios)}-users" /efs /efs/data
 chmod 770 /efs /efs/data
 chmod 700 /home/* 2>/dev/null || true
+echo "DEBUG: /efs ownership:"
+ls -la /efs || true
 
 cd /efs
 git clone https://github.com/mamonaco1973/oci-fss.git
