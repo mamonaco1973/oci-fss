@@ -287,4 +287,8 @@ chgrp -R "${lower(netbios)}-users" oci-fss
 netfilter-persistent save
 
 realm list || true
+
+mkdir -p /home/ubuntu
+chown -R ubuntu:ubuntu /home/ubuntu || true
+
 echo "user-data complete: $(date -Is)"
