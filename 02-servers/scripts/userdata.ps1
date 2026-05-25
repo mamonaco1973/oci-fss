@@ -10,6 +10,10 @@ Start-Transcript -Path $Log -Append -Force
 try {
     Write-Output "Starting PowerShell user-data at $(Get-Date -Format o)"
 
+    Write-Output "Enabling NLA so MSTSC prompts for credentials before session starts"
+    Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' `
+      -Name "UserAuthentication" -Value 1
+
     Write-Output "Setting local windows_local_admin account for RDP fallback access"
     $localPassword = "${windows_local_admin_password}" | ConvertTo-SecureString -AsPlainText -Force
     New-LocalUser -Name "windows_local_admin" -Password $localPassword -PasswordNeverExpires -ErrorAction SilentlyContinue
@@ -83,10 +87,6 @@ try {
             Start-Sleep -Seconds $retryDelay
         }
     }
-
-    Write-Output "Enabling NLA so MSTSC prompts for credentials before session starts"
-    Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' `
-      -Name "UserAuthentication" -Value 1
 
     # OCI DHCP pushes the VCN base domain as the search suffix, mangling AD FQDNs.
     # Registry SearchList overrides DHCP and survives the domain join reboot.

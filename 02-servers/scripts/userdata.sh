@@ -103,6 +103,9 @@ echo "$MT_IP:/home  /home  nfs  _netdev,nfsvers=3  0  0" >> /etc/fstab
 
 systemctl daemon-reload
 echo "FSS mounts complete: $(date -Is)"
+echo "DEBUG: active NFS mounts:"
+mount | grep nfs || echo "WARNING: no NFS mounts found"
+df -h /efs /home || true
 
 # Wait for DC Kerberos — DNS resolving the domain is not enough; the full AD
 # stack (Kerberos, LDAP) takes longer after the DC reboots post-provision.
@@ -205,7 +208,7 @@ template shell = /bin/bash
 create mask = 0770
 force create mode = 0770
 directory mask = 0770
-force group = mcloud-users
+force group = ${lower(netbios)}-users
 
 realm = ${domain_fqdn_upper}
 
@@ -259,14 +262,14 @@ for user in rpatel jsmith akumar edavis; do
   su -c "exit" "$user" 2>/dev/null || true
 done
 
-chgrp mcloud-users /efs /efs/data
+chgrp "${lower(netbios)}-users" /efs /efs/data
 chmod 770 /efs /efs/data
 chmod 700 /home/* 2>/dev/null || true
 
 cd /efs
 git clone https://github.com/mamonaco1973/oci-fss.git
 chmod -R 775 oci-fss
-chgrp -R mcloud-users oci-fss
+chgrp -R "${lower(netbios)}-users" oci-fss
 
 netfilter-persistent save
 
