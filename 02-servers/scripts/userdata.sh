@@ -276,7 +276,7 @@ for user in rpatel jsmith akumar edavis; do
 done
 
 chgrp "${lower(netbios)}-users" /nfs /nfs/data
-chmod 770 /nfs /nfs/data
+chmod 775 /nfs /nfs/data
 chmod 700 /home/* 2>/dev/null || true
 echo "DEBUG: /nfs ownership:"
 ls -la /nfs || true

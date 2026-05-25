@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-VALID_USERS="admin jsmith edavis rpatel akumar windows_local_admin"
+VALID_USERS="admin ubuntu jsmith edavis rpatel akumar windows_local_admin"
 
 if [ $# -ne 1 ]; then
   echo "Usage: $0 <user>"
@@ -12,7 +12,7 @@ fi
 USER="$1"
 
 case "$USER" in
-  admin)               OUTPUT="admin_password" ;;
+  admin|ubuntu)        OUTPUT="admin_password" ;;
   jsmith)              OUTPUT="jsmith_password" ;;
   edavis)              OUTPUT="edavis_password" ;;
   rpatel)              OUTPUT="rpatel_password" ;;
@@ -35,6 +35,8 @@ fi
 
 if [ "$USER" = "windows_local_admin" ]; then
   echo "Username : windows_local_admin (local account)"
+elif [ "$USER" = "ubuntu" ]; then
+  echo "Username : ubuntu (local account)"
 else
   echo "Username : ${USER}@${DNS_ZONE}"
 fi
