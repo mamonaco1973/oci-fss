@@ -45,18 +45,12 @@ resource "oci_file_storage_mount_target" "fss_mt" {
 # ==============================================================================
 # Exports
 # ------------------------------------------------------------------------------
-# /nfs  — shared data directory, re-exported via Samba to Windows as Z:
-# /home — AD user home directories shared across Linux instances
+# /nfs — shared data directory, re-exported via Samba to Windows as Z:
+#        /nfs/home is bind-mounted to /home so AD user homes live on FSS
 # ==============================================================================
 
 resource "oci_file_storage_export" "nfs_export" {
   export_set_id  = oci_file_storage_mount_target.fss_mt.export_set_id
   file_system_id = oci_file_storage_file_system.fss.id
   path           = "/nfs"
-}
-
-resource "oci_file_storage_export" "home_export" {
-  export_set_id  = oci_file_storage_mount_target.fss_mt.export_set_id
-  file_system_id = oci_file_storage_file_system.fss.id
-  path           = "/home"
 }

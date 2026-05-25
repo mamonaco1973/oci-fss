@@ -95,18 +95,18 @@ mount "$MT_IP":/nfs /nfs
 echo "$MT_IP:/nfs  /nfs  nfs  _netdev,nfsvers=3  0  0" >> /etc/fstab
 
 mkdir -p /nfs/data /nfs/home
-cp -R -p /home/* /nfs/home/.
 
-echo "Mounting FSS /home from $MT_IP"
-# Preserve any existing local home entries during mount
-mount "$MT_IP":/home /home
-echo "$MT_IP:/home  /home  nfs  _netdev,nfsvers=3  0  0" >> /etc/fstab
+# Symlink /home -> /nfs/home so AD user homes live on FSS without a
+# separate export or fstab entry — same pattern as azure-rstudio-cluster.
+mv /home /home.local
+ln -s /nfs/home /home
+cp -a /home.local/. /nfs/home/
 
 systemctl daemon-reload
 echo "FSS mounts complete: $(date -Is)"
 echo "DEBUG: active NFS mounts:"
 mount | grep nfs || echo "WARNING: no NFS mounts found"
-df -h /nfs /home || true
+df -h /nfs || true
 
 # Wait for DC Kerberos — DNS resolving the domain is not enough; the full AD
 # stack (Kerberos, LDAP) takes longer after the DC reboots post-provision.

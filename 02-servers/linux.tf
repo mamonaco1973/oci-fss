@@ -45,8 +45,5 @@ resource "oci_core_instance" "linux_ad_instance" {
   }
 
   # FSS mount target must exist before instance boots and runs userdata
-  depends_on = [
-    oci_file_storage_export.nfs_export,
-    oci_file_storage_export.home_export,
-  ]
+  depends_on = [oci_file_storage_export.nfs_export]
 }
