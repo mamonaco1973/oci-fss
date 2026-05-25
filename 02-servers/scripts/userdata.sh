@@ -31,6 +31,7 @@ iptables -I INPUT -s 0.0.0.0/0 -j ACCEPT
 ADMIN_USERNAME="Admin"
 ADMIN_PASSWORD="${admin_password}"
 DOMAIN_FQDN="${domain_fqdn}"
+MT_IP="${mt_ip}"
 
 echo "Waiting for DNS resolution..."
 until nslookup us.archive.ubuntu.com >/dev/null 2>&1; do
@@ -46,7 +47,6 @@ until curl -fsS --max-time 10 https://us.archive.ubuntu.com/ >/dev/null 2>&1; do
 done
 echo "Network ready: $(date -Is)"
 
-# Packages
 # Rewrite apt sources — avoids ubuntu.com DDoS issues on OCI
 sed -i 's|http://archive.ubuntu.com|http://us.archive.ubuntu.com|g' /etc/apt/sources.list.d/*.sources 2>/dev/null || true
 sed -i 's|http://security.ubuntu.com|http://us.archive.ubuntu.com|g' /etc/apt/sources.list.d/*.sources 2>/dev/null || true
@@ -67,8 +67,10 @@ done
 apt-get install -y \
   less curl jq python3-venv \
   realmd sssd-ad sssd-tools libnss-sss libpam-sss \
-  adcli samba-common-bin samba-libs \
+  adcli samba samba-common-bin samba-libs \
+  winbind libpam-winbind libnss-winbind \
   oddjob oddjob-mkhomedir packagekit krb5-user \
+  nfs-common \
   nano vim iptables-persistent
 
 # Install OCI CLI into a venv — avoids conflict with Debian-managed urllib3
@@ -76,6 +78,28 @@ apt-get install -y \
 python3 -m venv /opt/oci-venv
 /opt/oci-venv/bin/pip install --quiet oci-cli
 ln -sf /opt/oci-venv/bin/oci /usr/local/bin/oci
+
+# ==============================================================================
+# FSS NFS Mounts
+# ------------------------------------------------------------------------------
+# Mount before domain join so mkhomedir creates AD user home dirs on FSS,
+# matching the AWS EFS pattern where /home is shared across instances.
+# ==============================================================================
+
+echo "Mounting FSS /efs from $MT_IP"
+mkdir -p /efs
+mount "$MT_IP":/efs /efs
+echo "$MT_IP:/efs  /efs  nfs  _netdev,nfsvers=3  0  0" >> /etc/fstab
+
+mkdir -p /efs/data /efs/home
+
+echo "Mounting FSS /home from $MT_IP"
+# Preserve any existing local home entries during mount
+mount "$MT_IP":/home /home
+echo "$MT_IP:/home  /home  nfs  _netdev,nfsvers=3  0  0" >> /etc/fstab
+
+systemctl daemon-reload
+echo "FSS mounts complete: $(date -Is)"
 
 # Wait for DC Kerberos — DNS resolving the domain is not enough; the full AD
 # stack (Kerberos, LDAP) takes longer after the DC reboots post-provision.
@@ -124,7 +148,6 @@ fi
 touch /etc/skel/.Xauthority
 chmod 600 /etc/skel/.Xauthority
 
-# Enable mkhomedir + restart services
 pam-auth-update --enable mkhomedir || true
 systemctl restart sssd || true
 systemctl restart ssh || systemctl restart sshd || true
@@ -135,6 +158,112 @@ if [ ! -f "$SUDO_FILE" ]; then
   echo "%linux-admins ALL=(ALL) NOPASSWD:ALL" > "$SUDO_FILE"
   chmod 440 "$SUDO_FILE"
 fi
+
+# ==============================================================================
+# Samba SMB Gateway
+# ------------------------------------------------------------------------------
+# Samba uses the machine keytab written by realm join (adcli) at
+# /etc/krb5.keytab — no separate "net ads join" needed.
+# Windows clients map Z: to \\<this-ip>\efs via the [efs] share.
+# ==============================================================================
+
+systemctl stop sssd || true
+
+# Derive NetBIOS name from hostname (max 15 chars, no dashes, uppercase)
+RAW_HOSTNAME=$(head /etc/hostname -c 15)
+NETBIOS_NAME=$(echo "$RAW_HOSTNAME" | tr -d '-' | tr '[:lower:]' '[:upper:]')
+
+cat > /etc/samba/smb.conf <<EOF
+[global]
+workgroup = ${netbios}
+security = ads
+
+strict sync = no
+sync always = no
+aio read size = 1
+aio write size = 1
+use sendfile = yes
+
+passdb backend = tdbsam
+
+printing = cups
+printcap name = cups
+load printers = yes
+cups options = raw
+
+# Uses the machine keytab created by realm join — no net ads join needed
+kerberos method = secrets and keytab
+
+netbios name = $NETBIOS_NAME
+
+template homedir = /home/%U
+template shell = /bin/bash
+
+create mask = 0770
+force create mode = 0770
+directory mask = 0770
+force group = mcloud-users
+
+realm = ${domain_fqdn_upper}
+
+idmap config ${netbios} : backend = sss
+idmap config ${netbios} : range = 10000-1999999999
+idmap config * : backend = tdb
+idmap config * : range = 1-9999
+
+winbind use default domain = yes
+winbind normalize names = yes
+winbind refresh tickets = yes
+winbind offline logon = yes
+winbind enum groups = yes
+winbind enum users = yes
+winbind cache time = 30
+idmap cache time = 60
+winbind negative cache time = 0
+
+[homes]
+browseable = no
+read only = no
+inherit acls = yes
+
+[efs]
+path = /efs
+read only = no
+guest ok = no
+EOF
+
+# NSS: add winbind alongside sssd so Samba can resolve AD users for SMB auth
+cat > /etc/nsswitch.conf <<EOF
+passwd:     files sss winbind
+group:      files sss winbind
+automount:  files sss winbind
+shadow:     files sss winbind
+hosts:      files dns myhostname
+services:   files sss
+netgroup:   files sss
+EOF
+
+systemctl restart winbind smb nmb sssd || true
+systemctl restart ssh || systemctl restart sshd || true
+
+# ==============================================================================
+# Permissions and Seed Content
+# ==============================================================================
+
+# Pre-create home dirs for domain users on FSS so permissions are correct
+# before first login — mkhomedir handles subsequent users automatically.
+for user in rpatel jsmith akumar edavis; do
+  su -c "exit" "$user" 2>/dev/null || true
+done
+
+chgrp mcloud-users /efs /efs/data
+chmod 770 /efs /efs/data
+chmod 700 /home/* 2>/dev/null || true
+
+cd /efs
+git clone https://github.com/mamonaco1973/oci-fss.git
+chmod -R 775 oci-fss
+chgrp -R mcloud-users oci-fss
 
 netfilter-persistent save
 

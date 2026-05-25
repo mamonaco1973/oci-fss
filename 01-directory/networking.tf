@@ -81,7 +81,9 @@ resource "oci_core_route_table" "private_rt" {
 # ==============================================================================
 # Security Lists
 # ------------------------------------------------------------------------------
-# Public VM subnet: SSH (22) and RDP (3389) ingress for client access.
+# Public VM subnet: SSH (22), RDP (3389), NFS (111/2048-2050), SMB (445).
+#   NFS rules allow the Linux instance to reach the FSS mount target
+#   (both in vm-subnet). SMB allows Windows to reach the Samba gateway.
 # Private AD subnet: Open ingress within VCN CIDR so clients can reach AD ports.
 #   The module NSG handles granular port control on the DC instance itself.
 # ==============================================================================
@@ -108,6 +110,61 @@ resource "oci_core_security_list" "vm_sl" {
     tcp_options {
       min = 3389
       max = 3389
+    }
+  }
+
+  # NFS portmapper (TCP) — required by FSS mount target
+  ingress_security_rules {
+    protocol  = "6"
+    source    = "10.0.0.64/26"
+    stateless = false
+    tcp_options {
+      min = 111
+      max = 111
+    }
+  }
+
+  # NFS portmapper (UDP) — required by FSS mount target
+  ingress_security_rules {
+    protocol  = "17"
+    source    = "10.0.0.64/26"
+    stateless = false
+    udp_options {
+      min = 111
+      max = 111
+    }
+  }
+
+  # NFS lockd/mountd/statd (TCP) — FSS uses ports 2048-2050
+  ingress_security_rules {
+    protocol  = "6"
+    source    = "10.0.0.64/26"
+    stateless = false
+    tcp_options {
+      min = 2048
+      max = 2050
+    }
+  }
+
+  # NFS (UDP) — FSS port 2048
+  ingress_security_rules {
+    protocol  = "17"
+    source    = "10.0.0.64/26"
+    stateless = false
+    udp_options {
+      min = 2048
+      max = 2048
+    }
+  }
+
+  # SMB — Windows clients connect to the Linux Samba gateway on 445
+  ingress_security_rules {
+    protocol  = "6"
+    source    = "10.0.0.64/26"
+    stateless = false
+    tcp_options {
+      min = 445
+      max = 445
     }
   }
 

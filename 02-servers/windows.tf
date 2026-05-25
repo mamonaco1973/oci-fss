@@ -35,8 +35,12 @@ resource "oci_core_instance" "windows_ad_instance" {
       windows_local_admin_password = local.windows_local_admin_password
       domain_fqdn                  = var.dns_zone
       netbios                      = var.netbios
+      # Linux instance private IP — Windows maps Z: to \\<samba_server>\efs
+      samba_server                 = oci_core_instance.linux_ad_instance.private_ip
     }))
   }
+
+  depends_on = [oci_core_instance.linux_ad_instance]
 }
 
 output "windows_public_ip" {

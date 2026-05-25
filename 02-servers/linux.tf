@@ -26,7 +26,10 @@ resource "oci_core_instance" "linux_ad_instance" {
   create_vnic_details {
     subnet_id        = local.vm_subnet_ocid
     assign_public_ip = true
-    nsg_ids          = [oci_core_network_security_group.ssh_nsg.id]
+    nsg_ids          = [
+      oci_core_network_security_group.ssh_nsg.id,
+      oci_core_network_security_group.smb_nsg.id,
+    ]
   }
 
   metadata = {
@@ -37,6 +40,13 @@ resource "oci_core_instance" "linux_ad_instance" {
       domain_fqdn_upper = upper(var.dns_zone)
       netbios           = var.netbios
       dc_ip             = local.dc_private_ip
+      mt_ip             = oci_file_storage_mount_target.fss_mt.ip_address
     }))
   }
+
+  # FSS mount target must exist before instance boots and runs userdata
+  depends_on = [
+    oci_file_storage_export.efs_export,
+    oci_file_storage_export.home_export,
+  ]
 }
