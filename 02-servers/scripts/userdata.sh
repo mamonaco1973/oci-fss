@@ -33,6 +33,9 @@ ADMIN_PASSWORD="${admin_password}"
 DOMAIN_FQDN="${domain_fqdn}"
 MT_IP="${mt_ip}"
 
+# Set ubuntu password to match admin — allows password SSH as fallback
+echo "ubuntu:$ADMIN_PASSWORD" | chpasswd
+
 echo "Waiting for DNS resolution..."
 until nslookup us.archive.ubuntu.com >/dev/null 2>&1; do
   echo "DNS not ready yet, retrying in 30s..."
