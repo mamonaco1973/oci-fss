@@ -68,8 +68,8 @@ try {
     Add-Computer -DomainName "${domain_fqdn}" -Credential $cred -Force
     Write-Output "Domain join command completed"
 
-    Write-Output "Adding ${netbios}\mcloud-users to Remote Desktop Users"
-    $domainGroup = "${netbios}\mcloud-users"
+    Write-Output "Adding ${netbios}\${lower(netbios)}-users to Remote Desktop Users"
+    $domainGroup = "${netbios}\${lower(netbios)}-users"
     $maxRetries  = 10
     $retryDelay  = 30
 

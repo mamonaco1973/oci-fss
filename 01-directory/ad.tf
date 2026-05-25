@@ -122,6 +122,11 @@ output "dns_zone" {
   value       = var.dns_zone
 }
 
+output "netbios" {
+  description = "NetBIOS domain name — used by validate.sh for RDP connection hints."
+  value       = var.netbios
+}
+
 output "windows_local_admin_password" {
   description = "Local admin password for the Windows instance — RDP fallback."
   value       = local.windows_local_admin_password

@@ -125,6 +125,14 @@ ssh -i 01-directory/keys/Private_Key -o StrictHostKeyChecking=no ubuntu@<linux_p
 
 No bastion needed — Linux client is in a public subnet.
 
+## Domain Configuration
+
+Default domain: `mcloud.mikecloud.com` / realm `MCLOUD.MIKECLOUD.COM` / NetBIOS `MCLOUD`
+
+To change the domain, override `dns_zone`, `realm`, `netbios`, and `user_base_dn` in both:
+- `01-directory/variables.tf`
+- `02-servers/variables.tf`
+
 ## Windows RDP Fallback
 
 If the domain join fails, RDP as `windows_local_admin` — password retrieved with `./get_password.sh windows_local_admin`.

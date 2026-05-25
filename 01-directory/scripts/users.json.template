@@ -5,7 +5,7 @@
     "userBaseDn": "${USER_BASE_DN}"
   },
   "groups": [
-    { "name": "mcloud-users", "gidNumber": 10001 },
+    { "name": "${lower(NETBIOS)}-users", "gidNumber": 10001 },
     { "name": "us",           "gidNumber": 10002 },
     { "name": "india",        "gidNumber": 10003 },
     { "name": "linux-admins", "gidNumber": 10004 }
@@ -18,7 +18,7 @@
       "password": "${jsmith_password}",
       "uidNumber": 10001,
       "gidNumber": 10001,
-      "primaryGroup": "mcloud-users",
+      "primaryGroup": "${lower(NETBIOS)}-users",
       "extraGroups": ["us", "linux-admins", "Domain Admins"]
     },
     {
@@ -28,7 +28,7 @@
       "password": "${edavis_password}",
       "uidNumber": 10002,
       "gidNumber": 10001,
-      "primaryGroup": "mcloud-users",
+      "primaryGroup": "${lower(NETBIOS)}-users",
       "extraGroups": ["us"]
     },
     {
@@ -38,7 +38,7 @@
       "password": "${rpatel_password}",
       "uidNumber": 10003,
       "gidNumber": 10001,
-      "primaryGroup": "mcloud-users",
+      "primaryGroup": "${lower(NETBIOS)}-users",
       "extraGroups": ["india", "linux-admins", "Domain Admins"]
     },
     {
@@ -48,7 +48,7 @@
       "password": "${akumar_password}",
       "uidNumber": 10004,
       "gidNumber": 10001,
-      "primaryGroup": "mcloud-users",
+      "primaryGroup": "${lower(NETBIOS)}-users",
       "extraGroups": ["india"]
     }
   ]

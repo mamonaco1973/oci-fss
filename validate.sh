@@ -7,6 +7,7 @@ set -euo pipefail
 
 DC_IP=$(cd 01-directory && terraform output -raw dc_private_ip 2>/dev/null || echo "")
 BASTION_ID=$(cd 01-directory && terraform output -raw bastion_id 2>/dev/null || echo "")
+NETBIOS=$(cd 01-directory && terraform output -raw netbios 2>/dev/null || echo "MCLOUD")
 
 # ================================================================================
 # 02-servers outputs
@@ -35,7 +36,7 @@ echo "    AD user  : ./get_password.sh rpatel  =>  ssh rpatel@${LINUX_IP:-<ip>}"
 echo ""
 echo "  Windows Client (public)"
 echo "    IP       : ${WINDOWS_IP:-not deployed}"
-echo "    Connect  : RDP to ${WINDOWS_IP:-<ip>} as MCLOUD\\Admin"
+echo "    Connect  : RDP to ${WINDOWS_IP:-<ip>} as ${NETBIOS}\\Admin"
 echo ""
 echo "  Passwords  : ./get_password.sh <user>"
 echo "               users: admin jsmith edavis rpatel akumar"
