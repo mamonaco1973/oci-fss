@@ -97,13 +97,13 @@ try {
     Set-DnsClient -InterfaceIndex $adapter.InterfaceIndex `
         -ConnectionSpecificSuffix "${domain_fqdn}"
 
-    # Map Z: to the Linux Samba gateway's [efs] share at every logon.
+    # Map Z: to the Linux Samba gateway's [shared] share at every logon.
     # Placed in the All Users startup folder so domain users get the mapping
     # automatically after the domain join reboot.
-    Write-Output "Creating persistent Z: drive mapping to \\${samba_server}\efs"
+    Write-Output "Creating persistent Z: drive mapping to \\${samba_server}\nfs"
     $startup   = "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp"
     $batchFile = Join-Path $startup "map_drives.bat"
-    $command   = "net use Z: \\${samba_server}\efs /persistent:yes"
+    $command   = "net use Z: \\${samba_server}\nfs /persistent:yes"
     Set-Content -Path $batchFile -Value $command -Encoding ASCII
     Write-Output "Drive mapping script created"
 

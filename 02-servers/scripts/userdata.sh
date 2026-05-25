@@ -89,12 +89,12 @@ ln -sf /opt/oci-venv/bin/oci /usr/local/bin/oci
 # matching the AWS EFS pattern where /home is shared across instances.
 # ==============================================================================
 
-echo "Mounting FSS /efs from $MT_IP"
-mkdir -p /efs
-mount "$MT_IP":/efs /efs
-echo "$MT_IP:/efs  /efs  nfs  _netdev,nfsvers=3  0  0" >> /etc/fstab
+echo "Mounting FSS /nfs from $MT_IP"
+mkdir -p /nfs
+mount "$MT_IP":/nfs /nfs
+echo "$MT_IP:/nfs  /nfs  nfs  _netdev,nfsvers=3  0  0" >> /etc/fstab
 
-mkdir -p /efs/data /efs/home
+mkdir -p /nfs/data /nfs/home
 
 echo "Mounting FSS /home from $MT_IP"
 # Preserve any existing local home entries during mount
@@ -105,7 +105,7 @@ systemctl daemon-reload
 echo "FSS mounts complete: $(date -Is)"
 echo "DEBUG: active NFS mounts:"
 mount | grep nfs || echo "WARNING: no NFS mounts found"
-df -h /efs /home || true
+df -h /nfs /home || true
 
 # Wait for DC Kerberos — DNS resolving the domain is not enough; the full AD
 # stack (Kerberos, LDAP) takes longer after the DC reboots post-provision.
@@ -235,7 +235,7 @@ read only = no
 inherit acls = yes
 
 [efs]
-path = /efs
+path = /nfs
 read only = no
 guest ok = no
 EOF
@@ -273,13 +273,13 @@ for user in rpatel jsmith akumar edavis; do
   su -c "exit" "$user" 2>/dev/null || true
 done
 
-chgrp "${lower(netbios)}-users" /efs /efs/data
-chmod 770 /efs /efs/data
+chgrp "${lower(netbios)}-users" /nfs /nfs/data
+chmod 770 /nfs /nfs/data
 chmod 700 /home/* 2>/dev/null || true
-echo "DEBUG: /efs ownership:"
-ls -la /efs || true
+echo "DEBUG: /nfs ownership:"
+ls -la /nfs || true
 
-cd /efs
+cd /nfs
 git clone https://github.com/mamonaco1973/oci-fss.git
 chmod -R 775 oci-fss
 chgrp -R "${lower(netbios)}-users" oci-fss
