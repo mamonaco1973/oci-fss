@@ -121,7 +121,7 @@ echo "DC Kerberos ready: $(date -Is)"
 # Join AD domain — retry loop in case LDAP/SMB are still initialising
 echo "Joining domain $DOMAIN_FQDN as $ADMIN_USERNAME"
 for i in {1..10}; do
-  if echo "$ADMIN_PASSWORD" | realm join -U "$ADMIN_USERNAME" "$DOMAIN_FQDN"; then
+  if echo "$ADMIN_PASSWORD" | realm join --membership-software=samba -U "$ADMIN_USERNAME" "$DOMAIN_FQDN" --verbose; then
     echo "Domain join succeeded on attempt $i"
     break
   fi
@@ -215,10 +215,11 @@ force group = ${lower(netbios)}-users
 
 realm = ${domain_fqdn_upper}
 
-idmap config ${netbios} : backend = sss
-idmap config ${netbios} : range = 10000-1999999999
+idmap config ${domain_fqdn_upper} : backend = sss
+idmap config ${domain_fqdn_upper} : range = 10000-1999999999
 idmap config * : backend = tdb
 idmap config * : range = 1-9999
+min domain uid = 0
 
 winbind use default domain = yes
 winbind normalize names = yes
@@ -289,6 +290,7 @@ netfilter-persistent save
 
 realm list || true
 
+ln -sf /nfs /etc/skel/nfs
 mkdir -p /home/ubuntu
 chown -R ubuntu:ubuntu /home/ubuntu || true
 
