@@ -17,10 +17,10 @@ set -euo pipefail
 # Optional: Override AD domain settings
 # Uncomment and modify to use a custom domain instead of the defaults.
 # ------------------------------------------------------------------------------
-export TF_VAR_dns_zone="lab.mikecloud.com"
-export TF_VAR_realm="LAB.MIKECLOUD.COM"
-export TF_VAR_netbios="LAB"
-export TF_VAR_user_base_dn="CN=Users,DC=lab,DC=mikecloud,DC=com"
+# export TF_VAR_dns_zone="lab.mikecloud.com"
+# export TF_VAR_realm="LAB.MIKECLOUD.COM"
+# export TF_VAR_netbios="LAB"
+# export TF_VAR_user_base_dn="CN=Users,DC=lab,DC=mikecloud,DC=com"
 
 # Resolve compartment — fall back to tenancy OCID if OCI_COMPARTMENT_ID is unset
 if [ -z "${OCI_COMPARTMENT_ID:-}" ]; then

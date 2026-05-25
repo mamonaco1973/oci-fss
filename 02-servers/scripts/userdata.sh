@@ -91,8 +91,8 @@ ln -sf /opt/oci-venv/bin/oci /usr/local/bin/oci
 
 echo "Mounting FSS /nfs from $MT_IP"
 mkdir -p /nfs
-mount "$MT_IP":/nfs /nfs
-echo "$MT_IP:/nfs  /nfs  nfs  _netdev,nfsvers=3  0  0" >> /etc/fstab
+mount -o nfsvers=4 "$MT_IP":/nfs /nfs
+echo "$MT_IP:/nfs  /nfs  nfs  _netdev,nfsvers=4  0  0" >> /etc/fstab
 
 mkdir -p /nfs/data /nfs/home
 

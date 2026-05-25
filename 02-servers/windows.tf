@@ -15,7 +15,7 @@ resource "oci_core_instance" "windows_ad_instance" {
 
   shape_config {
     ocpus         = 2
-    memory_in_gbs = 16
+    memory_in_gbs = 8
   }
 
   source_details {

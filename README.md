@@ -8,28 +8,7 @@ Two-phase Terraform deploy: `01-directory` provisions networking, security rules
 
 ## Architecture
 
-```
-vm-subnet (10.0.0.64/26)
-  ┌──────────────────┐        NFS         ┌──────────────────────┐
-  │  Linux Instance  │ ──────────────────▶ │   FSS Mount Target   │
-  │  (Ubuntu 24.04)  │                     │   (10.0.0.x)         │
-  │                  │                     ├──────────────────────┤
-  │  /efs  (mounted) │                     │ export /efs          │
-  │  /home (mounted) │                     │ export /home         │
-  │                  │                     └──────────────────────┘
-  │  Samba [efs]     │
-  └──────────────────┘
-          │ SMB (Z: drive)
-          ▼
-  ┌──────────────────┐
-  │ Windows Instance │
-  │  (Server 2022)   │
-  │   Z: = \\linux\efs│
-  └──────────────────┘
-
-ad-subnet (10.0.0.0/26) — private, NAT egress only
-  └── Samba 4 DC (ARM64, always-free A1.Flex)
-```
+![OCI diagram](oci-fss.png)
 
 ---
 
@@ -39,7 +18,7 @@ ad-subnet (10.0.0.0/26) — private, NAT egress only
 - VCN (10.0.0.0/24) with Internet Gateway and NAT Gateway
 - Public vm-subnet (10.0.0.64/26) — Linux and Windows instances
 - Private ad-subnet (10.0.0.0/26) — Samba 4 domain controller
-- Security list rules for SSH, RDP, NFS (111/2048-2050), and SMB (445)
+- Security list rules for SSH, RDP, NFS (2049), and SMB (445)
 
 **Active Directory:**
 - Ubuntu 24.04 ARM64 instance (VM.Standard.A1.Flex, always-free) running Samba 4
@@ -47,18 +26,18 @@ ad-subnet (10.0.0.0/26) — private, NAT egress only
 
 **File Storage:**
 - OCI FSS filesystem (encrypted at rest)
-- Mount target in vm-subnet with two NFS exports: `/efs` and `/home`
+- Mount target in vm-subnet with a single NFS export: `/nfs`
 
 **Linux NFS/Samba Gateway:**
 - Ubuntu 24.04 (VM.Standard.E4.Flex, 1 OCPU / 4 GB)
-- Mounts FSS `/efs` at `/efs` and FSS `/home` at `/home`
-- Exposes `/efs` as a Samba `[efs]` share (SMB, AD-authenticated)
+- Mounts FSS `/nfs` at `/nfs` via NFS v4; `/home` is a symlink to `/nfs/home`
+- Exposes `/nfs` as a Samba `[nfs]` share (SMB, AD-authenticated)
 - Joined to the domain; AD users can SSH in with their domain credentials
 
 **Windows Client:**
 - Windows Server 2022 (VM.Standard.E4.Flex, 2 OCPU / 16 GB)
 - Joined to the domain at first boot
-- Maps `Z:` to `\\<linux-ip>\efs` at every login via a startup script
+- Maps `Z:` to `\\<linux-ip>\nfs` at every login via a startup script
 
 ---
 
@@ -104,21 +83,21 @@ The following sample users and groups are created automatically during DC provis
 
 ### Groups
 
-| Group Name   | gidNumber |
-|--------------|-----------|
-| mcloud-users | 10001     |
-| us           | 10002     |
-| india        | 10003     |
-| linux-admins | 10004     |
+| Group Name                              | gidNumber |
+|-----------------------------------------|-----------|
+| `{netbios}-users` (e.g. `mcloud-users`) | 10001     |
+| us                                      | 10002     |
+| india                                   | 10003     |
+| linux-admins                            | 10004     |
 
 ### Users
 
 | Username | Full Name   | uidNumber | gidNumber | Groups                            |
 |----------|-------------|-----------|-----------|-----------------------------------|
-| jsmith   | John Smith  | 10001     | 10001     | mcloud-users, us, linux-admins    |
-| edavis   | Emily Davis | 10002     | 10001     | mcloud-users, us                  |
-| rpatel   | Raj Patel   | 10003     | 10001     | mcloud-users, india, linux-admins |
-| akumar   | Amit Kumar  | 10004     | 10001     | mcloud-users, india               |
+| jsmith   | John Smith  | 10001     | 10001     | `{netbios}-users`, us, linux-admins    |
+| edavis   | Emily Davis | 10002     | 10001     | `{netbios}-users`, us                  |
+| rpatel   | Raj Patel   | 10003     | 10001     | `{netbios}-users`, india, linux-admins |
+| akumar   | Amit Kumar  | 10004     | 10001     | `{netbios}-users`, india               |
 
 ---
 
@@ -132,6 +111,7 @@ Passwords are read directly from Terraform state:
 ./get_password.sh edavis
 ./get_password.sh rpatel
 ./get_password.sh akumar
+./get_password.sh ubuntu
 ./get_password.sh windows_local_admin
 ```
 
@@ -148,8 +128,8 @@ ssh -i 01-directory/keys/Private_Key -o StrictHostKeyChecking=no ubuntu@<linux_p
 After login you can verify the FSS mounts:
 
 ```bash
-df -h /efs /home
-ls /efs
+df -h /nfs /home
+ls /nfs
 ```
 
 ---
@@ -158,10 +138,10 @@ ls /efs
 
 Use the public IP shown in Terraform outputs. Connect via RDP with domain credentials:
 
-- **Username:** `MCLOUD\Admin` or any domain user from the table above
+- **Username:** `{NETBIOS}\Admin` (e.g. `MCLOUD\Admin`) or any domain user from the table above
 - **Password:** retrieved via `./get_password.sh <user>`
 
-After login, open File Explorer — `Z:` should be mapped to `\\<linux-ip>\efs`.
+After login, open File Explorer — `Z:` should be mapped to `\\<linux-ip>\nfs`.
 
 ---
 
@@ -183,6 +163,19 @@ OCI KMS Vault was the natural choice for storing generated AD passwords securely
 AWS Secrets Manager and Azure Key Vault both handle deletion gracefully. This is an OCI platform deficiency.
 
 **Current approach:** Passwords are stored as sensitive outputs in `terraform.tfstate`. Use `./get_password.sh` to retrieve any credential.
+
+---
+
+## Changing the Domain Name
+
+The default domain is `mcloud.mikecloud.com` / `MCLOUD`. To deploy with a different domain, uncomment and edit the four override lines near the top of `apply.sh` and `destroy.sh`:
+
+```bash
+export TF_VAR_dns_zone="lab.mikecloud.com"
+export TF_VAR_realm="LAB.MIKECLOUD.COM"
+export TF_VAR_netbios="LAB"
+export TF_VAR_user_base_dn="CN=Users,DC=lab,DC=mikecloud,DC=com"
+```
 
 ---
 
