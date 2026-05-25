@@ -229,7 +229,6 @@ winbind enum groups = yes
 winbind enum users = yes
 winbind cache time = 30
 idmap cache time = 60
-winbind negative cache time = 0
 
 [homes]
 browseable = no
