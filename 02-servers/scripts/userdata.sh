@@ -95,6 +95,7 @@ mount "$MT_IP":/nfs /nfs
 echo "$MT_IP:/nfs  /nfs  nfs  _netdev,nfsvers=3  0  0" >> /etc/fstab
 
 mkdir -p /nfs/data /nfs/home
+cp -R -p /home/* /nfs/home/.
 
 echo "Mounting FSS /home from $MT_IP"
 # Preserve any existing local home entries during mount
