@@ -39,8 +39,7 @@ resource "random_password" "jsmith_password" {
   special          = true
   min_numeric      = 2
   min_special      = 2
-  # $ breaks PS1 double-quoted string interpolation — exclude it
-  override_special = "!@#%"
+  override_special = "_-"
 }
 
 resource "random_password" "edavis_password" {
@@ -48,7 +47,7 @@ resource "random_password" "edavis_password" {
   special          = true
   min_numeric      = 2
   min_special      = 2
-  override_special = "!@#%"
+  override_special = "_-"
 }
 
 resource "random_password" "rpatel_password" {
@@ -56,7 +55,7 @@ resource "random_password" "rpatel_password" {
   special          = true
   min_numeric      = 2
   min_special      = 2
-  override_special = "!@#%"
+  override_special = "_-"
 }
 
 resource "random_password" "akumar_password" {
@@ -64,7 +63,7 @@ resource "random_password" "akumar_password" {
   special          = true
   min_numeric      = 2
   min_special      = 2
-  override_special = "!@#%"
+  override_special = "_-"
 }
 
 resource "random_password" "windows_local_admin_password" {
