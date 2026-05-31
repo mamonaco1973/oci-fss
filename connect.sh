@@ -20,6 +20,21 @@ if [ -z "$BASTION_ID" ]; then
 fi
 
 DC_IP=$(cd 01-directory && terraform output -raw dc_private_ip 2>/dev/null)
+if [ -z "$DC_IP" ]; then
+  COMPARTMENT_ID="${OCI_COMPARTMENT_ID:-$(awk -F= '/^tenancy/{print $2}' ~/.oci/config | tr -d ' ')}"
+  INSTANCE_ID=$(oci compute instance list \
+    --compartment-id "$COMPARTMENT_ID" \
+    --display-name "mini-ad-dc-mcloud" \
+    --lifecycle-state RUNNING \
+    --query 'data[0].id' \
+    --raw-output 2>/dev/null)
+  if [ -n "$INSTANCE_ID" ]; then
+    DC_IP=$(oci compute instance list-vnics \
+      --instance-id "$INSTANCE_ID" \
+      --query 'data[0]."private-ip"' \
+      --raw-output 2>/dev/null)
+  fi
+fi
 TARGET_IP="${1:-$DC_IP}"
 
 echo "Target: $TARGET_IP"
