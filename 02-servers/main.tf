@@ -50,7 +50,7 @@ locals {
   ssh_public_key               = data.terraform_remote_state.directory.outputs.ssh_public_key
   dc_private_ip                = data.terraform_remote_state.directory.outputs.dc_private_ip
   windows_local_admin_password = data.terraform_remote_state.directory.outputs.windows_local_admin_password
-  linux_hostname   = "linux-${random_id.server_suffix.hex}"
+  linux_hostname   = "smb-gateway-${random_id.server_suffix.hex}"
   windows_hostname = "win-${random_id.server_suffix.hex}"
 }
 
