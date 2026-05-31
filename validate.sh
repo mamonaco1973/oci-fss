@@ -22,7 +22,7 @@ WINDOWS_IP=$(cd 02-servers && terraform output -raw windows_public_ip 2>/dev/nul
 
 echo ""
 echo "============================================================================"
-echo "Mini-AD - Deployment Summary"
+echo "OCI FSS - Deployment Summary"
 echo "============================================================================"
 echo ""
 echo "  Domain Controller (private)"
