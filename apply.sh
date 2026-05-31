@@ -47,6 +47,21 @@ echo "NOTE: Deploying Active Directory resources..."
 cd 01-directory || { echo "ERROR: Directory 01-directory not found"; exit 1; }
 
 terraform init
+
+# Apply credentials first so passwords and SSH keys are committed to state
+# before the mini-AD module runs — allows get_password.sh and connect.sh
+# to work even if the module times out on first attempt.
+terraform apply -auto-approve \
+  -target=tls_private_key.ssh \
+  -target=local_file.private_key \
+  -target=local_file.public_key \
+  -target=random_password.admin_password \
+  -target=random_password.jsmith_password \
+  -target=random_password.edavis_password \
+  -target=random_password.rpatel_password \
+  -target=random_password.akumar_password \
+  -target=random_password.windows_local_admin_password
+
 terraform apply -auto-approve
 
 cd ..
