@@ -4,6 +4,10 @@ This project deploys a shared NFS file system on OCI using File Storage Service 
 
 Two-phase Terraform deploy: `01-directory` provisions networking, security rules, and the Samba 4 DC. `02-servers` provisions the FSS filesystem, mount target, exports, and client instances.
 
+See it in action — full deployment walkthrough below.
+
+[![Watch the video](https://img.youtube.com/vi/dbPnF3yEgXk/maxresdefault.jpg)](https://www.youtube.com/watch?v=dbPnF3yEgXk)
+
 ---
 
 ## Architecture
